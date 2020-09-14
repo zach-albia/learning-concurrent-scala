@@ -123,3 +123,13 @@ object FuturesClumsyCallback extends App {
 
   Thread.sleep(2000)
 }
+
+import scala.concurrent.duration._
+object BlockingAwait extends App {
+  val urlSpecSizeFuture = Future {
+    val specUrl = "http://www.w3.org/Addressing/URL/url-spec.txt"
+    Source.fromURL(specUrl).size
+  }
+  val urlSpecSize = Await.result(urlSpecSizeFuture, 10.seconds)
+  log(s"url spec contains $urlSpecSize characters")
+}

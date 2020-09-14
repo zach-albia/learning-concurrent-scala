@@ -1,6 +1,6 @@
 package org.learningconcurrency.ch4
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{CancellationException, Future, Promise}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object PromisesCreate extends App {
@@ -17,7 +17,8 @@ object PromisesCreate extends App {
 import scala.util.control.NonFatal
 
 object PromisesCustomAsync extends App {
-  def myFuture[T](b: =>T ): Future[T] = {
+
+  def myFuture[T](b: => T): Future[T] = {
     val p = Promise[T]
     global.execute(() => try {
       p.success(b)
@@ -26,7 +27,42 @@ object PromisesCustomAsync extends App {
     })
     p.future
   }
-  val f = myFuture { "naa" + "na" * 8 + " Katamari Damacy!" }
+
+  val f = myFuture {
+    "naa" + "na" * 8 + " Katamari Damacy!"
+  }
   f foreach log
   Thread.sleep(100)
+}
+
+object PromisesCancellation extends App {
+  type Cancellable[T] = (Promise[Unit], Future[T])
+
+  def cancellable[T](b: Future[Unit] => T): Cancellable[T] = {
+    val cancel = Promise[Unit]
+    val f = Future {
+      val r = b(cancel.future)
+      if (!cancel.tryFailure(new Exception)) {
+        throw new CancellationException
+      }
+      r
+    }
+    (cancel, f)
+  }
+
+  val (cancel, value) = cancellable { cancel =>
+    var i = 0
+    while (i < 5) {
+      if (cancel.isCompleted) throw new CancellationException
+      Thread.sleep(500)
+      log(s"$i: working")
+      i += 1
+    }
+    "resulting value"
+  }
+
+  Thread.sleep(1500)
+  cancel trySuccess ()
+  log("computation cancelled!")
+  Thread.sleep(2000)
 }
