@@ -73,3 +73,53 @@ object FuturesNonFatal extends App {
   f.failed foreach { t => log(s"error - $t") }
   g.failed.foreach(t => log(s"error - $t"))
 }
+
+import java.io._
+import org.apache.commons.io.FileUtils._
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+
+object FuturesClumsyCallback extends App {
+  def blacklistFile(name: String): Future[List[String]] = Future {
+    val src = Source.fromFile(name)
+    val lines = src.getLines
+    src.close()
+    lines.filter(x => !x.startsWith("#") && !x.isEmpty).toList
+  }
+
+  def findFiles(patterns: List[String]): List[String] = {
+    val root = new File(".")
+    for {
+      f <- iterateFiles(root, null, true).asScala.toList
+      pat <- patterns
+      abspat = root.getCanonicalPath + File.separator + pat if f.getCanonicalPath.contains(abspat)
+    } yield f.getCanonicalPath
+  }
+
+  def blacklisted(name: String): Future[List[String]] =
+    blacklistFile(name).map(findFiles)
+
+  blacklistFile(".gitignore") foreach {
+    case lines =>
+      val files = findFiles(lines)
+      log(s"matches: ${files.mkString("\n")}")
+  }
+
+  val buildFile = Future { Source.fromFile("build.sbt").getLines }
+
+  val longest = for (ls <- buildFile) yield ls.maxBy(_.length)
+  longest foreach (line => log(s"longest line: $line"))
+
+  val netiquetteUrl = "http://www.ietf.org/rfc/rfc1855.txt"
+  val netiquette = Future { Source.fromURL(netiquetteUrl).mkString }
+  val urlSpecUrl = "http://www.w3.org/Addressing/URL/url-spec.txt"
+  val urlSpec = Future { Source.fromURL(urlSpecUrl).mkString }
+  val answer = for {
+    nettext <- netiquette
+    urltext <- urlSpec
+  } yield {
+    "First, read this: " + nettext + ". Now, try this: " + urltext
+  }
+  answer.foreach(log(_))
+
+  Thread.sleep(2000)
+}
