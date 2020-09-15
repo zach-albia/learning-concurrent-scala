@@ -3,7 +3,7 @@ package org.learningconcurrency
 import java.util.{Timer, TimerTask}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{CancellationException, Future, Promise}
 import scala.util.{Failure, Success, Try}
 
 package object ch4 {
@@ -34,5 +34,19 @@ package object ch4 {
       }
     }, t)
     p.future
+  }
+
+  type Cancellable[T] = (Promise[Unit], Future[T])
+
+  def cancellable[T](b: Future[Unit] => T): Cancellable[T] = {
+    val cancel = Promise[Unit]
+    val f = Future {
+      val r = b(cancel.future)
+      if (!cancel.tryFailure(new Exception)) {
+        throw new CancellationException
+      }
+      r
+    }
+    (cancel, f)
   }
 }
