@@ -66,3 +66,8 @@ object PromisesCancellation extends App {
   log("computation cancelled!")
   Thread.sleep(2000)
 }
+
+object Timeouts extends App {
+  timeout(1000) foreach (_ => log("Timed out!"))
+  Thread.sleep(2000)
+}

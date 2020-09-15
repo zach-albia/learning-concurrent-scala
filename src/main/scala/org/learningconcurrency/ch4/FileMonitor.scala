@@ -27,23 +27,3 @@ object FileMonitor extends App {
     filename => log(s"Detected new file '$filename'")
   }
 }
-
-object Timeouts extends App {
-  import java.util._
-
-  private val timer = new Timer(true)
-
-  def timeout(t: Long): Future[Unit] = {
-    val p = Promise[Unit]
-    timer.schedule(new TimerTask {
-      def run() = {
-        p.success(())
-        timer.cancel()
-      }
-    }, t)
-    p.future
-  }
-
-  timeout(1000) foreach (_ => log("Timed out!"))
-  Thread.sleep(2000)
-}

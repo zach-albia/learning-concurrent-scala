@@ -1,5 +1,7 @@
 package org.learningconcurrency
 
+import java.util.{Timer, TimerTask}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success, Try}
@@ -19,5 +21,18 @@ package object ch4 {
       that onComplete (y => p tryComplete y)
       p.future
     }
+  }
+
+  private val timer = new Timer(true)
+
+  def timeout(t: Long): Future[Unit] = {
+    val p = Promise[Unit]
+    timer.schedule(new TimerTask {
+      def run() = {
+        p.success(())
+        timer.cancel()
+      }
+    }, t)
+    p.future
   }
 }
