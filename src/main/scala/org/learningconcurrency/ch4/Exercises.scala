@@ -37,3 +37,22 @@ object Exercise1 extends App {
     it.foreach(println)
   }, Duration.Inf)
 }
+
+object Exercise2 extends App {
+
+  class IVar[T] {
+    private val promise = Promise[T]
+
+    def apply(): T =
+      if (promise.isCompleted)
+        Await.result(promise.future, Duration.Inf)
+      else throw new IllegalStateException
+
+    def :=(x: T): Unit =
+      promise.success(x)
+  }
+
+  val a = new IVar[Int]
+  a := 4
+  println(a())
+}
