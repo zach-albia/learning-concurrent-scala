@@ -16,8 +16,12 @@ object Exercise1 extends App {
       print(".")
     }
   }
-  val timeoutDuration = 10000
-  val timeoutFuture = timeout(timeoutDuration).map { _ => donePromise.trySuccess(()); Iterator.empty }
+  val timeoutDuration = 2000
+  val timeoutFuture = timeout(timeoutDuration).map { _ =>
+    donePromise.trySuccess(())
+    println("Request timed out!")
+    Iterator.empty
+  }
   val urlHtmlFuture = Future {
     val value = Source.fromURL(userUrl).getLines
     donePromise.success(())
