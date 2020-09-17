@@ -1,12 +1,14 @@
 package org.learningconcurrency.ch4
 
+import java.util.concurrent.ConcurrentHashMap
+
 import scala.async.Async.{async, await}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future, Promise}
+import scala.concurrent.{Await, Future, Promise, blocking}
 import scala.io.Source
 import scala.io.StdIn.readLine
-import scala.util.{Failure, Success}
+import scala.util.Success
 
 object Exercise1 extends App {
   print("Enter your URL: ")
@@ -60,12 +62,15 @@ object Exercise2 extends App {
 }
 
 object Exercise3 {
+
   implicit class FutureOps[T](f: Future[T]) {
     def exists(p: T => Boolean): Future[Boolean] = f.map(p)
   }
+
 }
 
 object Exercise4 {
+
   implicit class FutureOps[T](f: Future[T]) {
     def exists(pred: T => Boolean): Future[Boolean] = {
       val p = Promise[Boolean]
@@ -73,11 +78,50 @@ object Exercise4 {
       p.future
     }
   }
+
 }
 
 object Exercise5 {
+
   implicit class FutureOps[T](f: Future[T]) {
     def exists(pred: T => Boolean): Future[Boolean] =
-      async { pred(await(f)) }
+      async {
+        pred(await(f))
+      }
+  }
+
+}
+
+object Exercise6 {
+
+  import sys.process._
+
+  def spawn(command: String): Future[Int] = Future {
+    blocking {
+      command.!
+    }
+  }
+}
+
+object Exercise7 {
+  class IMap[K, V] {
+
+    import scala.collection.concurrent
+    import scala.jdk.CollectionConverters.ConcurrentMapHasAsScala
+
+    val map: concurrent.Map[K, Promise[V]] = new ConcurrentHashMap[K, Promise[V]]().asScala
+
+    def update(k: K, v: V): Unit = map.get(k).fold {
+      map(k) = Promise.successful(v)
+    } {
+      _.success(v)
+    }
+
+    def apply(k: K): Future[V] = map.get(k).fold {
+      map(k) = Promise[V]()
+      map(k).future
+    } {
+      _.future
+    }
   }
 }
