@@ -3,6 +3,7 @@ package org.learningconcurrency.ch4
 import java.util.concurrent.ConcurrentHashMap
 
 import scala.async.Async.{async, await}
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, Promise, blocking}
@@ -151,7 +152,7 @@ object Exercise9 extends App {
     }
   }
 
-  def task(i: Int, range: Range, f: (Int, Int) => Int ): () => Int = () => {
+  def task(i: Int, range: Range, f: (Int, Int) => Int): () => Int = () => {
     println(s"starting task $i")
     val res = range.reduce(f)
     println(s"task $i done")
@@ -164,4 +165,38 @@ object Exercise9 extends App {
     task(3, 2001 to 3000, math.min),
     task(4, 3001 to 4000, _ % _)
   )), Duration.Inf))
+}
+
+object Exercise11 extends App {
+
+  class DAG[T](val value: T) {
+    val edges = mutable.Set[DAG[T]]()
+  }
+
+  def fold[T, S](g: DAG[T], f: (T, Seq[S]) => S): Future[S] =
+    Future
+      .sequence(g.edges.toSeq.map { g => fold(g, f) })
+      .map(ss => f(g.value, ss))
+
+  val a = new DAG("a")
+  val b = new DAG("b")
+  val c = new DAG("c")
+  val d = new DAG("d")
+  val e = new DAG("e")
+  a.edges += b
+  b.edges += c
+  b.edges += d
+  c.edges += e
+  d.edges += e
+
+  println(
+    Await.result(
+      fold[String, String](a, (t, ss) => {
+        println(s"t = $t")
+        println(s"ss = $ss")
+        t ++ ss.mkString
+      }),
+      Duration.Inf
+    )
+  )
 }
