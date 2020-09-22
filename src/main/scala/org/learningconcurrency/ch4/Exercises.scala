@@ -140,3 +140,21 @@ object Exercise8 {
   }
 
 }
+
+object Exercise9 extends App {
+
+  def scatterGather[T](tasks: Seq[() => T]): Future[Seq[T]] = {
+    tasks.map(t => Future {
+      t()
+    }).foldRight(Future(List.empty[T])) { (fs, f) =>
+      fs.zip(f).map { case (t, ts) => t :: ts }
+    }
+  }
+
+  println(Await.result(scatterGather(List(
+    () => (1 to 1000).reduce(_ - _),
+    () => (1001 to 2000).reduce(math.max),
+    () => (2001 to 3000).reduce(math.min),
+    () => (3001 to 4000).reduce(_ % _)
+  )), Duration.Inf))
+}
