@@ -151,10 +151,17 @@ object Exercise9 extends App {
     }
   }
 
+  def task(i: Int, range: Range, f: (Int, Int) => Int ): () => Int = () => {
+    println(s"starting task $i")
+    val res = range.reduce(f)
+    println(s"task $i done")
+    res
+  }
+
   println(Await.result(scatterGather(List(
-    () => (1 to 1000).reduce(_ - _),
-    () => (1001 to 2000).reduce(math.max),
-    () => (2001 to 3000).reduce(math.min),
-    () => (3001 to 4000).reduce(_ % _)
+    task(1, 1 to 1000, _ - _),
+    task(2, 1001 to 2000, math.max),
+    task(3, 2001 to 3000, math.min),
+    task(4, 3001 to 4000, _ % _)
   )), Duration.Inf))
 }
