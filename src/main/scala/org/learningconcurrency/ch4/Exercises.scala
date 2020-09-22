@@ -84,10 +84,9 @@ object Exercise4 {
 object Exercise5 {
 
   implicit class FutureOps[T](f: Future[T]) {
-    def exists(pred: T => Boolean): Future[Boolean] =
-      async {
-        pred(await(f))
-      }
+    def exists(pred: T => Boolean): Future[Boolean] = async {
+      pred(await(f))
+    }
   }
 
 }
@@ -104,6 +103,7 @@ object Exercise6 {
 }
 
 object Exercise7 {
+
   class IMap[K, V] {
 
     import scala.collection.concurrent
@@ -124,4 +124,19 @@ object Exercise7 {
       _.future
     }
   }
+
+}
+
+object Exercise8 {
+
+  import concurrent.ExecutionContext.Implicits.global
+
+  implicit class PromiseOps[T](promise: Promise[T]) {
+    def compose[S](f: S => T): Promise[S] = {
+      val np = Promise[S]
+      np.future.map(f.andThen(promise.success))
+      np
+    }
+  }
+
 }
